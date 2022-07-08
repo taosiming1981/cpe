@@ -301,10 +301,10 @@ void Server::handle_packet_from_dev(std::string& msg)
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned int Server::get_node_id(unsigned int ip, std::string mac)
+unsigned int Server::getNodeIDFromIP(unsigned int ip, std::string mac)
 {
     unsigned int dest_ip = ip;
-    if(m_config.meshBw == 0)//only acc mode
+    if(m_config.onlyAcc == 1)//only acc mode
         return m_gateway_id;
 
     if(m_ip2nodeid_cache.find(ip) != m_ip2nodeid_cache.end()){
@@ -341,15 +341,18 @@ unsigned int Server::get_node_id(unsigned int ip, std::string mac)
                 mask[i] = 0;
 
             //cout << "subnet:" << htonl(inet_addr(subnet.c_str())) << " mask ip:" << (ip & mask.to_ulong()) << endl;
-            if((ip & mask.to_ulong()) == htonl(inet_addr(subnet.c_str()))) return node.node_ID;
+            if((ip & mask.to_ulong()) == htonl(inet_addr(subnet.c_str()))) 
+	        return node.node_ID;
         }
 
-        if(m_config.tapMode && mac == node.node_mac_addr) return node.node_ID;
+        if(m_config.tapMode && mac == node.node_mac_addr) 
+	    return node.node_ID;
     }
 
     if(!m_config.gateWay){
        return m_gateway_id;
     }
+
     return 0;
 }
 
@@ -362,7 +365,7 @@ uint32_t Server::getDestIDFromTunPacket(const unsigned char* packet)
 
     memcpy(&dest_ip_int, packet+ip_offset, 4);//ip addr in ip packet offset is 16bytes;
 
-    destID = get_node_id(htonl(dest_ip_int));
+    destID = getNodeIDFromIP(htonl(dest_ip_int));
     if(destID != 0 && destID != m_gateway_id && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
        m_ip2nodeid_cache[htonl(dest_ip_int)] = destID;
 
@@ -399,7 +402,7 @@ uint32_t Server::getDestIDFromTapPacket(const unsigned char* packet)
         memcpy(&dest_ip_int, packet+ip_offset, 4);
 
         if(htonl(dest_ip_int) < 0xE0000000){ //ip packet and dest ip less than 224.0.0.1
-            destID = get_node_id(htonl(dest_ip_int), dest_mac_addr);
+            destID = getNodeIDFromIP(htonl(dest_ip_int), dest_mac_addr);
             if(destID != 0 && destID != m_gateway_id && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
                 m_ip2nodeid_cache[htonl(dest_ip_int)] = destID;
 

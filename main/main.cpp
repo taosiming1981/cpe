@@ -80,8 +80,8 @@ int  start(FancyMsgChanLibInterfaceDll& dll, Server& svr, mzConfig& config, std:
       std::string local_ip = itor.local_ip;
       std::string server_ip = itor.server_ip;
       int port = atoi(itor.server_port.c_str());
-      int up_bw = atoi(itor.server_port.c_str());
-      int down_bw = atoi(itor.server_port.c_str());
+      int up_bw = atoi(itor.up_bw.c_str());
+      int down_bw = atoi(itor.down_bw.c_str());
       int priority = atoi(itor.priority.c_str());
 
       dll.m_FancyJingMsgAddConnAddr(local_ip.c_str(), server_ip.c_str(), port, up_bw, down_bw, priority);
