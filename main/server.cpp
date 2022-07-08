@@ -298,31 +298,6 @@ void Server::handle_packet_from_dev(std::string& msg)
     }
    
     m_send_callback(dest, msg);
-    //send_data_to_peer(dest, msg);
-/*
-    uint32_t local_id = (uint32_t)atoi(m_node_id.c_str());
-
-    
-        if(dest != 0xFFFFFFFF){
-            auto msg_ptr = std::make_unique<send_msg_buf>(m_peer, dest, local_id, m_session_seq++);
-            msg_ptr->appendBody((const char*)msg.c_str(), msg.size());
-            send(std::move(msg_ptr));
-        }
-        else
-        {
-            std::vector<NodeInfo>& nodeInfoList = m_config.nodeInfoList;
-            for(auto& itor : nodeInfoList){
-                unsigned dest_id = itor.nodeID;
-                if(dest_id == m_config.userID)
-                    continue;
-                if(m_config.debug)
-                    cout << getCurrentTime() << "muticast for dest id:" << dest_id << endl;
-                 auto msg_ptr = std::make_unique<send_msg_buf>(m_peer, dest_id, local_id, m_session_seq++);
-                 msg_ptr->appendBody((const char*)msg.c_str(), msg.size());
-                 send(std::move(msg_ptr));
-            }
-        }
-*/
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
