@@ -125,15 +125,10 @@ int destroy()
 
 int main(int argc, const char * argv[])
 {
-<<<<<<< HEAD
 
     uint32_t gateway_id = 100000;
     if(argc >= 2)
 	gateway_id = atoi(argv[1]);
-=======
-    FancyMsgChanLibInterfaceDll dll;
-    std::string dll_path = "../../libs/libFancyJingMsgChannel.so";
->>>>>>> 7454a6eeb48e48fd97ca0d0dbe62bf6cf661d6a3
 
     std::string path = "mingzhui.cfg";
     if(argc >= 2)
@@ -145,10 +140,6 @@ int main(int argc, const char * argv[])
         cout << "load config file error" << endl;
         exit(0);
     }
-
-    uint32_t gateway_id = 100000;
-    if(config.gateWay != 0)
-        gateway_id = config.gateWay;
 
     std::cout << " tun dev name:" << config.devName << std::endl;
     char* devName = new char[128];
