@@ -125,8 +125,9 @@ void Server::init_mesh_cpes(/*string filepath*/)
         tmpNode.node_subnet_IP_high = tmpNode.node_subnet_IP_low + ip_count;
         tmpNode.node_mac_addr = itor.macAddr;
 
-        cout << tmpNode.node_ID << " " << virtual_ip  <<  " " << tmpNode.node_virtual_IP << " " << tmpNode.node_subnet_IP_low  
-		<< " " << tmpNode.node_subnet_IP_high << " "<< ip_count << endl;
+        cout << tmpNode.node_ID << " " << virtual_ip  <<  " " << tmpNode.node_virtual_IP 
+		<< " " << tmpNode.node_subnet_IP_low  << " " << tmpNode.node_subnet_IP_high 
+		<< " "<< ip_count << endl;
         m_cpes.push_back(tmpNode);
     }
 }
@@ -209,13 +210,16 @@ void Server::add_route_for_nodes()
             if(netmask > 32)
                 continue;
 
-            //cout << "add route for dev:" << m_devname << " net:" << subnet << " mask:" << netmask << endl;  
+            //cout << "add route for dev:" << m_devname << " net:" << subnet 
+	    //<< " mask:" << netmask << endl;  
+
             std::bitset<32> mask(0xFFFFFFFF);
             for(uint32_t i = 0; i < (32-netmask); i++)
                 mask[i] = 0;
 
             std::string subnet_mask = ValueToIP(mask.to_ulong()); 
-            cout << "add route for dev:" << m_devname << " net:" << subnet << " mask:" << subnet_mask << endl;
+            cout << "add route for dev:" << m_devname << " net:" << subnet 
+		    << " mask:" << subnet_mask << endl;
             route_add_net(m_devname, subnet.c_str(), subnet_mask.c_str()); 
         }   
     }
@@ -243,19 +247,22 @@ void Server::del_route_for_nodes()
             if(netmask > 32)
                 continue;
 
-            //cout << "add route for dev:" << m_devname << " net:" << subnet << " mask:" << netmask << endl;
-            std::bitset<32> mask(0xFFFFFFFF);
+            //cout << "add route for dev:" << m_devname << " net:" << subnet 
+	    //<< " mask:" << netmask << endl;
+            
+	    std::bitset<32> mask(0xFFFFFFFF);
             for(uint32_t i = 0; i < (32-netmask); i++)
                 mask[i] = 0;
 
             std::string subnet_mask = ValueToIP(mask.to_ulong());
-            cout << "del route for dev:" << m_devname << " net:" << subnet << " mask:" << subnet_mask << endl;
+            cout << "del route for dev:" << m_devname << " net:" << subnet 
+		    << " mask:" << subnet_mask << endl;
             route_del_net(m_devname, subnet.c_str(), subnet_mask.c_str());
         }
     }
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////i
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Server::on_read_tun_tap(int status, int events)
 {
     int bufread = read(m_tun_tap_dev_fd, buffer+4, PACK_MTU/*m_packet_buff_size*/);
@@ -329,8 +336,6 @@ void Server::handle_packet_from_dev(std::string& msg)
 unsigned int Server::get_node_id(unsigned int ip, std::string mac)
 {
     unsigned int dest_ip = ip;
-    if(m_config.meshBw == 0)//only acc mode
-        return m_gateway_id;
 
     if(m_ip2nodeid_cache.find(ip) != m_ip2nodeid_cache.end()){
         int node_id = m_ip2nodeid_cache[ip];
@@ -344,18 +349,15 @@ unsigned int Server::get_node_id(unsigned int ip, std::string mac)
                 << " mac:" << hexMacAddr(mac) << endl;
 
         if(dest_ip == node.node_virtual_IP) return node.node_ID;
-        //if((dest_ip >= node.node_subnet_IP_low) && (dest_ip < node.node_subnet_IP_high)) return node.node_ID;
 
         std::vector<std::string> netVec = mzConfig::split(node.node_subnet, ",");
         //cout << "id: " << node.node_ID << " subnet:" << node.node_subnet << endl;
 
         for(auto net : netVec){
-            //cout << " sub net:" << net << endl;
             std::vector<std::string> meta = mzConfig::split(net, "/");
             if(meta.size() != 2)
                 continue;
 
-            //cout << " sub net:" << meta[0]  << " mask:" << meta[1] << endl;
             string   subnet = meta[0];
             uint32_t netmask = (uint32_t)atoi(meta[1].c_str());
             if(netmask > 32)
@@ -365,11 +367,14 @@ unsigned int Server::get_node_id(unsigned int ip, std::string mac)
             for(uint32_t i = 0; i < (32-netmask); i++)
                 mask[i] = 0;
 
-            //cout << "subnet:" << htonl(inet_addr(subnet.c_str())) << " mask ip:" << (ip & mask.to_ulong()) << endl;
-            if((ip & mask.to_ulong()) == htonl(inet_addr(subnet.c_str()))) return node.node_ID;
+            //cout << "subnet:" << htonl(inet_addr(subnet.c_str())) 
+	    //<< " mask ip:" << (ip & mask.to_ulong()) << endl;
+            if((ip & mask.to_ulong()) == htonl(inet_addr(subnet.c_str()))) 
+	        return node.node_ID;
         }
 
-        if(m_config.tapMode && mac == node.node_mac_addr) return node.node_ID;
+        if(m_config.tapMode && mac == node.node_mac_addr) 
+	    return node.node_ID;
     }
 
     if(!m_config.gateWay){
@@ -388,11 +393,13 @@ uint32_t Server::getDestIDFromTunPacket(const unsigned char* packet)
     memcpy(&dest_ip_int, packet+ip_offset, 4);//ip addr in ip packet offset is 16bytes;
 
     destID = get_node_id(htonl(dest_ip_int));
-    if(destID != 0 && destID != m_gateway_id && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
+    if(destID != 0 && destID != m_gateway_id 
+		    && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
        m_ip2nodeid_cache[htonl(dest_ip_int)] = destID;
 
     if(m_config.debug)
-        cout << getCurrentTime() << "read work for default dest:" << destID << " ip:" << ValueToIP(htonl(dest_ip_int)) << endl;
+        cout << getCurrentTime() << "read work for default dest:" << destID 
+		<< " ip:" << ValueToIP(htonl(dest_ip_int)) << endl;
 
     return destID;
 }

@@ -29,13 +29,17 @@ extern "C" {
 #define EXPORT_API
 #endif
 
-	EXPORT_API int FancyJingMsgInit(int uid_, int server_, int port_);
+	EXPORT_API int FancyJingMsgInit(int uid_, int virIP, int mode_);
 	EXPORT_API int FancyJingMsgRun();
 	EXPORT_API int FancyJingMsgSendToPeer(uint32_t dest_id, const char* data, int len);
 	EXPORT_API int FancyJingMsgRegisterRecvCallback(void(*callback)(const char*, int, int));
+	EXPORT_API int FancyJingMsgRegisterConnCallback(void(*callback)(unsigned int, bool));
 	EXPORT_API int FancyJingMsgStatus();
+	EXPORT_API int FancyJingMsgStop();
 	EXPORT_API int FancyJingMsgRelease();
-        EXPORT_API const char* FancyJingMsgVersion();
+	EXPORT_API int FancyJingMsgSetIPAddr(const char*);
+	EXPORT_API int FancyJingMsgAddConnAddr(const char*, const char*, uint16_t, uint16_t, uint16_t, uint8_t);
+	EXPORT_API const char* FancyJingMsgVersion();
 
 #ifdef __cplusplus
 }

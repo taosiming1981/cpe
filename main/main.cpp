@@ -10,10 +10,15 @@
 #include "util.hpp"
 #include "server.h"
 #include "config.h"
-#include "FancyMsgChanLibInterfaceDll.h"
+#include "ApiServer.h"
 
 using namespace std;
+////////////////////////////////////////////////
 Server* tun_ = nullptr;
+std::thread* g_network_thread = nullptr;
+bool g_wormhole_connected = false;
+std::mutex g_wormhole_lock;
+//////////////////////////////////////////////
 #if 0
 void redirect_file(mzConfig& config_)
 {
@@ -52,55 +57,75 @@ void ConnTunnelCallback(uint32_t ip, bool connected)
 	    << " connected:" << (connected ? "success" : "failed") << endl;
 }
 
-int  start(FancyMsgChanLibInterfaceDll& dll, Server& svr, mzConfig& config, std::string path)
+int  start(Server& svr, mzConfig& config)
 {
+  std::lock_guard<std::mutex> l(g_wormhole_lock);	
+  if(g_network_thread != nullptr) {
+        return -1;
+    }
+	
     uint32_t node_id_ = config.userID;
-    //FancyMsgChanLibInterfaceDll dll;
-    std::cout << " begin load lib  from path:" << path << std::endl;
-    if(!dll.LoadLibFromPath(path))
-    {
-        cout << "load libary so error !!" << endl;
-        return 0;
-    }
-    if(!dll.GetAllFunctions())
-    {
-        cout << "get function error!!!" << endl;
-        return 0;
-    }
-
-    const char* version = dll.m_FancyJingMsgVersion();
+    const char* version = FancyJingMsgVersion();
     cout << "version:" << version << endl;
-    uint32_t virtual_ip_ = htonl(inet_addr(config.userIP.c_str()));
-    uint16_t mode_ = atoi(config.userIP.c_str());
 
-    dll.m_FancyJingMsgInit(node_id_, virtual_ip_, mode_);
+    uint32_t virtual_ip_ = htonl(inet_addr(config.userIP.c_str()));
+    uint16_t mode_ = config.connectMode; 
+    cout << "start init node:" << node_id_ << " ip:" << virtual_ip_ << " mode:" << mode_ << endl;
+
+    FancyJingMsgInit(node_id_, virtual_ip_, mode_);
     
     for(auto &itor : config.tunnelList)
     {
       std::string local_ip = itor.local_ip;
       std::string server_ip = itor.server_ip;
       int port = atoi(itor.server_port.c_str());
-      int up_bw = atoi(itor.server_port.c_str());
-      int down_bw = atoi(itor.server_port.c_str());
+      int up_bw = atoi(itor.up_bw.c_str());
+      int down_bw = atoi(itor.down_bw.c_str());
       int priority = atoi(itor.priority.c_str());
 
-      dll.m_FancyJingMsgAddConnAddr(local_ip.c_str(), server_ip.c_str(), port, up_bw, down_bw, priority);
+      FancyJingMsgAddConnAddr(local_ip.c_str(), server_ip.c_str(), port, up_bw, down_bw, priority);
     }
 
-    FancyMsgChanLibInterfaceDll::FuncFancyjingCallback callback = &RecvMsgCallback;
-    dll.m_FancyJingMsgRegisterRecvCallback(*callback);
+    auto callback = &RecvMsgCallback;
+    FancyJingMsgRegisterRecvCallback(*callback);
 
-    FancyMsgChanLibInterfaceDll::FuncFancyjingConnCallback conn_callback = &ConnTunnelCallback;
-    dll.m_FancyJingMsgRegisterConnCallback(*conn_callback);
-    dll.m_FancyJingMsgRun();
+    auto conn_callback = &ConnTunnelCallback;
+    FancyJingMsgRegisterConnCallback(*conn_callback);
+
+
+    auto threadCallbackFunc2 = []() {
+        pthread_setname_np(pthread_self(), "network");
+        FancyJingMsgRun();
+    };
+
+    g_network_thread = new std::thread(threadCallbackFunc2);
+    g_wormhole_connected = true;    
+
+    return 0;
+}
+
+int destroy()
+{
+    std::lock_guard<std::mutex> l(g_wormhole_lock);
+    if(g_wormhole_connected)
+    {
+        FancyJingMsgStop();
+
+        if (g_network_thread != nullptr) {
+            g_network_thread->join();
+            delete g_network_thread;
+            g_network_thread = nullptr;
+        }
+
+        FancyJingMsgRelease();
+        g_wormhole_connected = false;
+    }	
     return 0;
 }
 
 int main(int argc, const char * argv[])
 {
-    FancyMsgChanLibInterfaceDll dll;
-    std::string dll_path = "../libs/libFancyJingMsgChannel.so";
-    
+
     uint32_t gateway_id = 100000;
     if(argc >= 2)
 	gateway_id = atoi(argv[1]);
@@ -132,14 +157,14 @@ int main(int argc, const char * argv[])
     else
         flag = IFF_TAP | IFF_NO_PI;
 
-    auto send_cb = [&dll](uint32_t dest, std::string& data){
-         // cout << "send data to dest:" << dest << " len:" << data.length() << endl;
+    auto send_cb = [](uint32_t dest, std::string& data){
+         cout << "send data to dest:" << dest << " len:" << data.length() << endl;
           //hexdump2((const unsigned char*)data.c_str(), data.length());   
-	  dll.m_FancyJingMsgSendToPeer(dest, data.c_str(), data.length());
+	 FancyJingMsgSendToPeer(dest, data.c_str(), data.length());
     };
     
     tun_ = new Server(user_id, devName, flag, config);
-    start(dll, *tun_, config, dll_path);
+    start(*tun_, config);
     tun_->register_send_func_callback(send_cb);
     tun_->set_gateway_id(gateway_id);
     tun_->run();
