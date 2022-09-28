@@ -305,37 +305,17 @@ void Server::handle_packet_from_dev(std::string& msg)
     }
    
     m_send_callback(dest, msg);
-    //send_data_to_peer(dest, msg);
-/*
-    uint32_t local_id = (uint32_t)atoi(m_node_id.c_str());
-
-    
-        if(dest != 0xFFFFFFFF){
-            auto msg_ptr = std::make_unique<send_msg_buf>(m_peer, dest, local_id, m_session_seq++);
-            msg_ptr->appendBody((const char*)msg.c_str(), msg.size());
-            send(std::move(msg_ptr));
-        }
-        else
-        {
-            std::vector<NodeInfo>& nodeInfoList = m_config.nodeInfoList;
-            for(auto& itor : nodeInfoList){
-                unsigned dest_id = itor.nodeID;
-                if(dest_id == m_config.userID)
-                    continue;
-                if(m_config.debug)
-                    cout << getCurrentTime() << "muticast for dest id:" << dest_id << endl;
-                 auto msg_ptr = std::make_unique<send_msg_buf>(m_peer, dest_id, local_id, m_session_seq++);
-                 msg_ptr->appendBody((const char*)msg.c_str(), msg.size());
-                 send(std::move(msg_ptr));
-            }
-        }
-*/
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-unsigned int Server::get_node_id(unsigned int ip, std::string mac)
+unsigned int Server::getNodeIDFromIP(unsigned int ip, std::string mac)
 {
     unsigned int dest_ip = ip;
+<<<<<<< HEAD
+=======
+    if(m_config.onlyAcc == 1)//only acc mode
+        return m_gateway_id;
+>>>>>>> 7454a6eeb48e48fd97ca0d0dbe62bf6cf661d6a3
 
     if(m_ip2nodeid_cache.find(ip) != m_ip2nodeid_cache.end()){
         int node_id = m_ip2nodeid_cache[ip];
@@ -367,8 +347,12 @@ unsigned int Server::get_node_id(unsigned int ip, std::string mac)
             for(uint32_t i = 0; i < (32-netmask); i++)
                 mask[i] = 0;
 
+<<<<<<< HEAD
             //cout << "subnet:" << htonl(inet_addr(subnet.c_str())) 
 	    //<< " mask ip:" << (ip & mask.to_ulong()) << endl;
+=======
+            //cout << "subnet:" << htonl(inet_addr(subnet.c_str())) << " mask ip:" << (ip & mask.to_ulong()) << endl;
+>>>>>>> 7454a6eeb48e48fd97ca0d0dbe62bf6cf661d6a3
             if((ip & mask.to_ulong()) == htonl(inet_addr(subnet.c_str()))) 
 	        return node.node_ID;
         }
@@ -380,6 +364,7 @@ unsigned int Server::get_node_id(unsigned int ip, std::string mac)
     if(!m_config.gateWay){
        return m_gateway_id;
     }
+
     return 0;
 }
 
@@ -392,9 +377,14 @@ uint32_t Server::getDestIDFromTunPacket(const unsigned char* packet)
 
     memcpy(&dest_ip_int, packet+ip_offset, 4);//ip addr in ip packet offset is 16bytes;
 
+<<<<<<< HEAD
     destID = get_node_id(htonl(dest_ip_int));
     if(destID != 0 && destID != m_gateway_id 
 		    && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
+=======
+    destID = getNodeIDFromIP(htonl(dest_ip_int));
+    if(destID != 0 && destID != m_gateway_id && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
+>>>>>>> 7454a6eeb48e48fd97ca0d0dbe62bf6cf661d6a3
        m_ip2nodeid_cache[htonl(dest_ip_int)] = destID;
 
     if(m_config.debug)
@@ -431,7 +421,7 @@ uint32_t Server::getDestIDFromTapPacket(const unsigned char* packet)
         memcpy(&dest_ip_int, packet+ip_offset, 4);
 
         if(htonl(dest_ip_int) < 0xE0000000){ //ip packet and dest ip less than 224.0.0.1
-            destID = get_node_id(htonl(dest_ip_int), dest_mac_addr);
+            destID = getNodeIDFromIP(htonl(dest_ip_int), dest_mac_addr);
             if(destID != 0 && destID != m_gateway_id && m_ip2nodeid_cache.find(htonl(dest_ip_int)) == m_ip2nodeid_cache.end())
                 m_ip2nodeid_cache[htonl(dest_ip_int)] = destID;
 

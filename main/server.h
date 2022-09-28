@@ -25,7 +25,6 @@ struct cpeNode
     std::string node_mac_addr;
 };
 
-
 class Server
 {
 public:
@@ -56,7 +55,9 @@ private:
 private:
         uint32_t getDestIDFromTunPacket(const unsigned char* packet);
         uint32_t getDestIDFromTapPacket(const unsigned char* packet);
-        uint32_t  get_node_id(unsigned int ip, std::string mac = "00:00:00:00:00:00");
+        uint32_t getNodeIDFromIP(unsigned int ip, std::string mac = "00:00:00:00:00:00");
+
+private:	
         void add_route_for_nodes();
         void del_route_for_nodes();
 
