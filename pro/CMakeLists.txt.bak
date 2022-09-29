@@ -1,0 +1,6 @@
+#DIR_LIB_SRCS 变量
+aux_source_directory(. DIR_LIB_SRCS)
+
+SET(LIBRARY_OUTPUT_PATH ../libs)
+# 指定生成 MathFunctions 链接库
+add_library (proto ${DIR_LIB_SRCS})                                                    

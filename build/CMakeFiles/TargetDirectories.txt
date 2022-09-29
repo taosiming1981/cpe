@@ -1,3 +1,0 @@
-/home/joindata/cpe/build/CMakeFiles/rebuild_cache.dir
-/home/joindata/cpe/build/CMakeFiles/edit_cache.dir
-/home/joindata/cpe/build/CMakeFiles/test_client.dir

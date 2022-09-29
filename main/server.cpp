@@ -20,7 +20,9 @@
 #include "util.hpp"
 #include "tun_tap.hpp"
 #include "make_unique_define.h"
-
+#include "login.pb.h"
+#include "keepalive.pb.h"
+#include "user_info.pb.h"
 #include "server.h"
 //////////////////////////////////////////////////////////////////////////////////////////
 int g_signal[] = {1,2,3,4,5,/*6,*/7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,23,25,26,27,28,29,30,31};
@@ -429,8 +431,7 @@ uint32_t Server::getDestIDFromTapPacket(const unsigned char* packet)
     return destID;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
-
-void Server::handle_data_recv(const char* data, uint32_t len, uint32_t src)
+void Server::handle_route_data_recv(const char* data, uint16_t len, uint32_t src)
 {
     if(m_tun_tap_dev_fd == 0){
         cout << " tun fd error" << endl;
@@ -449,69 +450,175 @@ void Server::handle_data_recv(const char* data, uint32_t len, uint32_t src)
 }
 
 
-void Server::handle_mesh_notify(std::string& name, std::string cpes_info)
+void Server::handle_session_data_recv(const char* data, uint16_t len)
 {
-#if 0
-      if(name != m_peer)
-            return;
+    if(len <= 4){
+       cout << "[error ]recv session data callback len:" << len << endl;
+       return;
+    }
 
-      if(cpes_info.size() != 0){
-            message::NodeInfoList cpes_info_list;
-            if(!cpes_info_list.ParseFromString(cpes_info)){
-                cout << "on tcp login parse error!" << endl;
+    uint16_t pack_len = 0;
+    uint16_t pack_uri = 0;
+    memcpy(&pack_len, data, 2);
+    memcpy(&pack_uri, data+2, 2);
+
+    if(len != pack_len + 4){
+	cout << "[error ]recv session data callback len:" << len 
+		<< " pack len:" << pack_len << " type:" << pack_uri << endl;
+        return;
+    }
+#if 1
+    switch(pack_uri){
+	//vender mesh info;
+        case MESSAGETYPE::MESSAGE_CPE_CHANGE_NOTIFY:
+        {
+            std::string buff;
+            buff.assign(data + 4, len-4);
+
+            message::CpeNodeChangeNotify notify;
+            if(!notify.ParseFromString(buff)){
+                cerr << "on cpes change notify parse error!" << endl;
                 return;
             }
+            
+	    std::string peername = "test";
+            std::string cpes_info = notify.data();
+            handle_mesh_notify(peername, cpes_info);
+            cout << "recv session data cmd:cpe change notify" << endl;
+        }
+        break;
+
+	//gateway node,online cpes info;
+	case MESSAGETYPE::MESSAGE_KEEPALIVE_TCP_RES:
+        case MESSAGETYPE::MESSAGE_KEEPALIVE_UDP_RES:
+	{
+            std::string buff;
+            buff.assign(data + 4, len-4);
+
+            message::KeepAliveRes pong;
+            if(!pong.ParseFromString(buff)){
+                cerr << "on udp keepalive res parse error!" << endl;
+                return;
+	    }
+
+            std::string snap_info = pong.meta();
+            if(snap_info.size() == 0)
+                return;
+           
+	    handle_online_cpes_notify(snap_info);
+	}
+	break;
+
+        default:
+	       cout << "[error ]recv session data callback uri not handle len:" << len
+                 << " type:" << pack_uri << endl;
+
+        break;
+    }
+
+#endif	
+}
+
+
+void Server::handle_mesh_notify(std::string& name, std::string cpes_info)
+{
+    if(cpes_info.size() == 0)
+        return;
+
+
+    message::NodeInfoList cpes_info_list;
+    if(!cpes_info_list.ParseFromString(cpes_info)){
+        cout << "handle mesh notinfy cpe info list  parse error!" << endl;
+        return;
+    }
               
-            m_ip2nodeid_cache.clear();
-            std::vector<NodeInfo>& nodeInfoList = m_config.nodeInfoList;
-            nodeInfoList.clear();
-            for(int i = 0; i < cpes_info_list.cpe_list_size(); i++){
+    m_ip2nodeid_cache.clear();
+    std::vector<NodeInfo>& nodeInfoList = m_config.nodeInfoList;
+    nodeInfoList.clear();
 
-                message::NetInfo info = cpes_info_list.cpe_list(i);
+    for(int i = 0; i < cpes_info_list.cpe_list_size(); i++){
+        message::NetInfo info = cpes_info_list.cpe_list(i);
 
-                uint32_t mask = 0xFFFFFFFF - (1 << (32 - info.net_mask())) + 1;
-                std::string netmask = ValueToIP(mask);
-                //route_add_net(m_devname, info.subnet_ip_start().c_str(), netmask.c_str());
+        uint32_t mask = 0xFFFFFFFF - (1 << (32 - info.net_mask())) + 1;
+        std::string netmask = ValueToIP(mask);
+        //route_add_net(m_devname, info.subnet_ip_start().c_str(), netmask.c_str());
 
-                if(info.subnet_ip_start() == "0.0.0.0"){
+        if(info.subnet_ip_start() == "0.0.0.0"){
                      cout << getCurrentTime() << " [cpes-mesh-info] error id:" << info.node_id() << " ip:"
                          << info.virtual_ip() << " subnet:" << info.subnet_ip_start() << "/" << info.net_mask()
                          << " mask:" << netmask << " mac-addr:" << hexMacAddr(info.mac_addr()) << endl;
 
                     continue;
-                }
+        }
 
-                cout << getCurrentTime() << " [cpes-mesh-info] id:" << info.node_id() << " ip:"
+        cout << getCurrentTime() << " [cpes-mesh-info] id:" << info.node_id() << " ip:"
                      << info.virtual_ip() << " subnet:" << info.subnet_ip_start() << "/" << info.net_mask()
                      << " mask:" << netmask << " mac-addr:" << hexMacAddr(info.mac_addr()) << endl;
 
                 //cout << "mac addr:" << hexdump(info.mac_addr()) << " size:" >> info.mac_addr().size() << endl;
 
-                NodeInfo node_info;
-                node_info.nodeID = info.node_id();
-                node_info.virtualIP = info.virtual_ip();
-                node_info.subNet = info.subnet_ip_start();
+        NodeInfo node_info;
+        node_info.nodeID = info.node_id();
+        node_info.virtualIP = info.virtual_ip();
+        node_info.subNet = info.subnet_ip_start();
 
-                node_info.netMask = info.net_mask();
-                node_info.macAddr = info.mac_addr();
+        node_info.netMask = info.net_mask();
+        node_info.macAddr = info.mac_addr();
 
-                nodeInfoList.push_back(node_info);
-            }
+        nodeInfoList.push_back(node_info);
+    }
 
-            del_route_for_nodes();
-            cout << getCurrentTime() << " delete all route info....." << endl;
-            init_cpes();
-            cout << getCurrentTime() << " init all cpes info......" << endl;
-            add_route_for_nodes();
-            cout << getCurrentTime() << " add all cpes subnet route info..... size:" << nodeInfoList.size()  << endl;
+    del_route_for_nodes();
+    cout << getCurrentTime() << " delete all route info....." << endl;
+  
+    init_mesh_cpes();
+    cout << getCurrentTime() << " init all cpes info......" << endl;
+    
+    add_route_for_nodes();
+    cout << getCurrentTime() << " add all cpes subnet route info..... size:" << nodeInfoList.size()  << endl;
+}
+
+void Server::handle_online_cpes_notify(std::string cpes_info)
+{
+    message::UserListOnEdge edgeListMsg_;
+    edgeListMsg_.ParseFromString(cpes_info);
+
+    m_cpes.clear();
+    for(int i = 0; i < edgeListMsg_.edge_list_size(); i++){
+        message::CustemorPEList edgeInfoMsg_ = edgeListMsg_.edge_list(i);
+        string cpeListInfo = "";
+        string edge_id = edgeInfoMsg_.edge_id();
+        string edge_ip = edgeInfoMsg_.edge_ip();
+        uint32_t edge_port = edgeInfoMsg_.edge_port();
+        uint32_t edge_group_id = edgeInfoMsg_.edge_group();
+
+        for(int k = 0; k < edgeInfoMsg_.cpe_list_size(); k++)
+        {
+            message::CustemorInfo cpe_info = edgeInfoMsg_.cpe_list(k);
+            std::string cpe_id = cpe_info.cpe_id();
+            std::string cpe_ip = cpe_info.cpe_ip();
+            cpeListInfo.append(":"+cpe_id+"("+cpe_ip+")");
+            //m_cpe2edge_map[cpe_id].insert(edge_id);
+            //m_cpe2super_map[cpe_id].insert(super_node_id);
+
+            cpeNode tmpNode;
+            tmpNode.node_ID = atoi(cpe_id.c_str());
+            tmpNode.node_virtual_IP = htonl(inet_addr(cpe_ip.c_str()));
+            tmpNode.node_subnet_IP_low = 0;
+            tmpNode.node_subnet_IP_high = 0;
+            m_cpes.push_back(tmpNode);
         }
 
-#endif
-//    tcp_conn.set_snap_fun(std::bind(&Server::on_snap_cb, this, placeholders::_1, placeholders::_2)); 
-//    tcp_conn.set_mesh_cb_fun(mesh_cb);
+        if(cpeListInfo.size() == 0)
+            cpeListInfo = ":null";
 
-
+        if(1){
+            cout << getCurrentTime() << "snap info for super onlines,edge:"  << edge_id << " ip:" << edge_ip << " port:" << edge_port << " group:" << edge_group_id
+                 << " cpes num:" << edgeInfoMsg_.cpe_list_size() << " info" << cpeListInfo << endl;
+        }
+    }    	
 }
+
 void Server::on_signal(int signum)
 {
    switch(signum){

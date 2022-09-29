@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package message;
+
+
+option optimize_for = LITE_RUNTIME;
+
+message Data {
+    bytes uid = 1;
+    bytes dest = 2;
+    int64 seq = 3;
+    int32 crc = 4;
+    bytes raw_data = 5;
+}

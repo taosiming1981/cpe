@@ -1,1 +1,0 @@
-g++  -g -Wall -Wno-pmf-conversions -std=c++11  -rdynamic CMakeFiles/test_client.dir/main/main.cpp.o CMakeFiles/test_client.dir/main/server.cpp.o  -o test_client   -L/home/joindata/cpe/libs  -Wl,-rpath,/home/joindata/cpe/libs -Wl,-Bstatic -lconfig++ -luv_a -Wl,-Bdynamic -lFancyJingMsgChannel -lpthread -ldl 
