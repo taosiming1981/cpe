@@ -14,7 +14,7 @@
 
 using namespace std;
 ////////////////////////////////////////////////
-Server* tun_ = nullptr;
+Server* g_tun_instance = nullptr;
 std::thread* g_network_thread = nullptr;
 bool g_wormhole_connected = false;
 std::mutex g_wormhole_lock;
@@ -44,11 +44,19 @@ void redirect_file(mzConfig& config_)
 }
 #endif
 
-void RecvMsgCallback(const char* data_, int len, int src)
+
+void RecvSessionMsgCallback(const char* data, int len)
 {
-    cout << "recv data call back from:" << src << " len:" << len << endl;
-    if(tun_)
-	tun_->handle_data_recv(data_, len, src);
+    if(g_tun_instance)
+        g_tun_instance->handle_session_data_recv(data, len) ;
+}
+
+
+void RecvRouteMsgCallback(const char* data_, int len, int src)
+{
+    //cout << "recv data call back from:" << src << " len:" << len << endl;
+    if(g_tun_instance)
+	g_tun_instance->handle_route_data_recv(data_, len, src);
 }
 
 void ConnTunnelCallback(uint32_t ip, bool connected)
@@ -57,7 +65,7 @@ void ConnTunnelCallback(uint32_t ip, bool connected)
 	    << " connected:" << (connected ? "success" : "failed") << endl;
 }
 
-int  start(Server& svr, mzConfig& config)
+int  start(mzConfig& config)
 {
   std::lock_guard<std::mutex> l(g_wormhole_lock);	
   if(g_network_thread != nullptr) {
@@ -86,8 +94,11 @@ int  start(Server& svr, mzConfig& config)
       FancyJingMsgAddConnAddr(local_ip.c_str(), server_ip.c_str(), port, up_bw, down_bw, priority);
     }
 
-    auto callback = &RecvMsgCallback;
-    FancyJingMsgRegisterRecvCallback(*callback);
+    auto session_callback = &RecvSessionMsgCallback;
+    FancyJingMsgRegisterRecvSessionDataCallback(*session_callback);
+    
+    auto route_callback = &RecvRouteMsgCallback;
+    FancyJingMsgRegisterRecvRouteDataCallback(*route_callback);
 
     auto conn_callback = &ConnTunnelCallback;
     FancyJingMsgRegisterConnCallback(*conn_callback);
@@ -126,13 +137,11 @@ int destroy()
 int main(int argc, const char * argv[])
 {
 
-    uint32_t gateway_id = 100000;
+    uint32_t gateway_id = 0;
     if(argc >= 2)
 	gateway_id = atoi(argv[1]);
 
     std::string path = "mingzhui.cfg";
-    //if(argc >= 2)
-    //    path = argv[1];
     
     mzConfig config;
     int ret = config.loadConfig(path.c_str());
@@ -161,11 +170,11 @@ int main(int argc, const char * argv[])
 	 FancyJingMsgSendToPeer(dest, data.c_str(), data.length());
     };
     
-    tun_ = new Server(user_id, devName, flag, config);
-    start(*tun_, config);
-    tun_->register_send_func_callback(send_cb);
-    tun_->set_gateway_id(gateway_id);
-    tun_->run();
+    g_tun_instance = new Server(user_id, devName, flag, config);
+    start(config);
+    g_tun_instance->register_send_func_callback(send_cb);
+    g_tun_instance->set_gateway_id(gateway_id);
+    g_tun_instance->run();
     return ret;
 
 }

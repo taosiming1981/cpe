@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package message;
+
+
+option optimize_for = LITE_RUNTIME;
+
+message KeepAlive {
+    bytes   uid = 1;
+    uint64  seq = 2;
+    uint64  tick = 3;
+    bytes   meta = 4;
+}
+
+message KeepAliveRes {
+    bytes uid = 1;
+    uint32 res_code = 2;
+    uint64 seq = 3;
+    uint64 tick = 4;
+    bytes  meta = 5;
+}

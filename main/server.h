@@ -11,8 +11,24 @@
 #include "config.h"
 
 
+
+enum MESSAGETYPE
+{
+   MESSAGE_ROUTE = 0,
+   MESSAGE_LOGIN_TCP = 1,
+   MESSAGE_LOGIN_TCP_RES = 2,
+   MESSAGE_LOGIN_UDP = 3,
+   MESSAGE_LOGIN_UDP_RES = 4,
+   MESSAGE_KEEPALIVE_TCP = 5,
+   MESSAGE_KEEPALIVE_TCP_RES = 6,
+   MESSAGE_KEEPALIVE_UDP = 7,
+   MESSAGE_KEEPALIVE_UDP_RES = 8,
+   MESSAGE_CPE_CHANGE_NOTIFY = 18
+};
+
 typedef std::function<void(unsigned int , std::string&)> do_send_callback_t;
 typedef std::function<void(unsigned int , std::string&)> do_recv_callback_t;
+
 
 struct cpeNode
 {
@@ -38,12 +54,14 @@ public:
 
 public:
        void register_send_func_callback(do_send_callback_t send_cb) { m_send_callback = send_cb; }
-       void handle_data_recv(const char* data, uint32_t len, uint32_t src);
+       void handle_route_data_recv(const char* data, uint16_t len, uint32_t src);
+       void handle_session_data_recv(const char* data, uint16_t len);
        void set_gateway_id(uint32_t id) { m_gateway_id = id; }
 
 private:
         void handle_packet_from_dev(std::string& msg);
 	void handle_mesh_notify(std::string& name, std::string cpes_info);
+	void handle_online_cpes_notify(std::string cpes_info);
 
 private:
         void init_mesh_cpes();

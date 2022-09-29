@@ -1,3 +1,0 @@
-/home/joindata/taosiming/cpe/build/CMakeFiles/rebuild_cache.dir
-/home/joindata/taosiming/cpe/build/CMakeFiles/edit_cache.dir
-/home/joindata/taosiming/cpe/build/CMakeFiles/test_client.dir

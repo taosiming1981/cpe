@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package message;
+
+option optimize_for = LITE_RUNTIME;
+
+message NetInfo {
+    int32 node_id = 1;
+    bytes virtual_ip = 2;
+    bytes subnet_ip_start = 3;
+    int32 net_mask = 4;
+    bytes mac_addr = 5;
+    bytes meta = 6;
+}
+
+message NodeInfoList{
+    repeated NetInfo cpe_list= 1;
+}
+
+message Login {
+    bytes  uid = 1;
+    bytes  token = 2;
+    NetInfo netinfo = 3;
+    bytes  vender = 4;
+    bytes  meta = 5;
+}
+
+message LoginRes {
+    bytes uid = 1;
+    int32 res_code = 2;
+    int32 gateway_id = 3;
+    bytes public_ip = 4;
+    bytes meta = 5;
+}
+
+message CpeNodeChangeNotify {
+    bytes uid = 1;
+    bytes data = 2;
+}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package message;
+
+
+option optimize_for = LITE_RUNTIME;
+
+message CustemorInfo{
+   bytes cpe_id = 1;
+   bytes cpe_ip = 2;
+   bytes cpe_vender = 3;
+}
+
+message CustemorPEList {
+   bytes edge_id = 1;
+   bytes edge_ip = 2;
+   int32 edge_port   = 3;
+   int32 edge_group = 4;
+   repeated CustemorInfo cpe_list = 5;
+}
+
+
+message UserListOnEdge {
+   repeated CustemorPEList edge_list = 1;
+}
+

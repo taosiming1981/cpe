@@ -32,7 +32,8 @@ extern "C" {
 	EXPORT_API int FancyJingMsgInit(int uid_, int virIP, int mode_);
 	EXPORT_API int FancyJingMsgRun();
 	EXPORT_API int FancyJingMsgSendToPeer(uint32_t dest_id, const char* data, int len);
-	EXPORT_API int FancyJingMsgRegisterRecvCallback(void(*callback)(const char*, int, int));
+	EXPORT_API int FancyJingMsgRegisterRecvRouteDataCallback(void(*callback)(const char*, int, int));
+	EXPORT_API int FancyJingMsgRegisterRecvSessionDataCallback(void(*callback)(const char*, int));
 	EXPORT_API int FancyJingMsgRegisterConnCallback(void(*callback)(unsigned int, bool));
 	EXPORT_API int FancyJingMsgStatus();
 	EXPORT_API int FancyJingMsgStop();
