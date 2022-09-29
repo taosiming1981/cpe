@@ -46,7 +46,7 @@ void redirect_file(mzConfig& config_)
 
 void RecvMsgCallback(const char* data_, int len, int src)
 {
-    //cout << "recv data call back from:" << src << " len:" << len << endl;
+    cout << "recv data call back from:" << src << " len:" << len << endl;
     if(tun_)
 	tun_->handle_data_recv(data_, len, src);
 }
@@ -131,8 +131,8 @@ int main(int argc, const char * argv[])
 	gateway_id = atoi(argv[1]);
 
     std::string path = "mingzhui.cfg";
-    if(argc >= 2)
-        path = argv[1];
+    //if(argc >= 2)
+    //    path = argv[1];
     
     mzConfig config;
     int ret = config.loadConfig(path.c_str());
