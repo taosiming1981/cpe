@@ -28,6 +28,7 @@ TARGET_LINK_LIBRARIES(${TARGET_NAME}
 	libconfig++.a
 	libuv_a.a
 	libprotobuf.a
+	#libprotobuf-lite.a
 	FancyJingMsgChannel
 	pthread
 	dl)

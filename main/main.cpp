@@ -165,7 +165,7 @@ int main(int argc, const char * argv[])
         flag = IFF_TAP | IFF_NO_PI;
 
     auto send_cb = [](uint32_t dest, std::string& data){
-         cout << "send data to dest:" << dest << " len:" << data.length() << endl;
+         //cout << "send data to dest:" << dest << " len:" << data.length() << endl;
           //hexdump2((const unsigned char*)data.c_str(), data.length());   
 	 FancyJingMsgSendToPeer(dest, data.c_str(), data.length());
     };
