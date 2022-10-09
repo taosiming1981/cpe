@@ -438,8 +438,8 @@ void Server::handle_route_data_recv(const char* data, uint16_t len, uint32_t src
         return;
     }
 
-    cout << getCurrentTime() << "handle route data recv from:" << src << " len:" << len 
-    //	    << " fd:" << m_tun_tap_dev_fd << endl;
+    cout << getCurrentTime() << "handle route data recv from:" << src << " len:" << len  
+    	    << " fd:" << m_tun_tap_dev_fd << endl;
     //hexdump2((const unsigned char*)data, len);
     int ret = write(m_tun_tap_dev_fd, data+4, len-4);
     if(ret < 0){
