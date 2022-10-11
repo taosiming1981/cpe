@@ -50,9 +50,9 @@ Server::Server(int id, char* devName, int flag, mzConfig& config_)
 ,m_tun_tap_dev_fd(tun_create(m_tun_tap_dev_name, flag)) 
 ,m_gateway_id(0)
 ,m_node_id(to_string(id))
-,m_loop(true)
-,m_poll(m_loop, m_tun_tap_dev_fd)
-,m_signal(m_loop)
+//,m_loop(true)
+//,m_poll(m_loop, m_tun_tap_dev_fd)
+//,m_signal(m_loop)
 ,m_config(config_)
 {
     init_mesh_cpes();
@@ -65,11 +65,14 @@ Server::Server(int id, char* devName, int flag, mzConfig& config_)
         pSignal->start(g_signal[i], std::bind(&Server::on_signal, this, placeholders::_1)); 
     } 
 */
-    int eventFlag = UV_READABLE;
         
     init_tap_tun_dev(); 
     add_route_for_nodes();	
+
+/*    
+    int eventFlag = UV_READABLE;
     m_poll.start(eventFlag, std::bind(&Server::on_read_tun_tap, this, placeholders::_1,  placeholders::_2));
+*/
     cout << "tun fd:" << m_tun_tap_dev_fd << endl;   
     cout << "init server finish....... for id:" << m_config.userID << " ip:" << m_config.userIP << endl;
 }
@@ -105,7 +108,39 @@ void Server::exec_up_cmd()
 
 void Server::run()
 {
+#if 1
+    int selectmax = m_tun_tap_dev_fd + 1;
+    fd_set readfds;
+    char buffer[PACK_MTU];
+
+    while( 1 ) {
+        FD_ZERO( &readfds );
+        FD_SET( m_tun_tap_dev_fd, &readfds );
+
+        int z = select( selectmax, &readfds, NULL, NULL, NULL );
+        if( z < 0 ) {
+            perror( "select() failed" );
+            close( m_tun_tap_dev_fd );
+            return;
+        } else {
+            if( FD_ISSET(m_tun_tap_dev_fd, &readfds ) ) {
+#if 1		   
+                on_read_tun_tap(0,0);
+#else
+                int bufread = read( m_tun_tap_dev_fd, buffer, sizeof(buffer) );
+                if( bufread < 0 ) {
+                    continue;
+                }
+
+                printf( "tundev has %d bytes of data\n", bufread );
+#endif
+            }
+        }
+    }
+	
+#else	
     m_loop.run();
+#endif
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //initilize mesh network;
@@ -400,7 +435,7 @@ uint32_t Server::getDestIDFromTapPacket(const unsigned char* packet)
     proto = htons(proto);
     //memcpy(&dest, packet+ip_offset, 4);//ip addr in ip packet offset is 16bytes;
     if(m_config.debug)
-       cout << getCurrentTime() << " read packet from tun proto: 0x" << hex << proto << " " << dec << proto << endl;
+       cout << getCurrentTime() << "read packet from tun proto: 0x" << hex << proto << " " << dec << proto << endl;
 
     if(proto == ETH_P_IP){
         //multicast,broadcast packet
@@ -438,7 +473,8 @@ void Server::handle_route_data_recv(const char* data, uint16_t len, uint32_t src
         return;
     }
 
-    cout << getCurrentTime() << "handle route data recv from:" << src << " len:" << len  
+    if(m_config.debug)
+        cout << getCurrentTime() << "handle route data recv from:" << src << " len:" << len  
     	    << " fd:" << m_tun_tap_dev_fd << endl;
     //hexdump2((const unsigned char*)data, len);
     int ret = write(m_tun_tap_dev_fd, data+4, len-4);

@@ -91,9 +91,9 @@ private:
         std::string m_node_id;
 
 private:
-	uvpp::loop   m_loop;
-        uvpp::Poll   m_poll; //read dev tun fd callback
-        uvpp::Signal m_signal;
+	//uvpp::loop   m_loop;
+        //uvpp::Poll   m_poll; //read dev tun fd callback
+        //uvpp::Signal m_signal;
 	cpeNode      m_node;
         mzConfig&    m_config;
 
