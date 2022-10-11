@@ -50,9 +50,11 @@ Server::Server(int id, char* devName, int flag, mzConfig& config_)
 ,m_tun_tap_dev_fd(tun_create(m_tun_tap_dev_name, flag)) 
 ,m_gateway_id(0)
 ,m_node_id(to_string(id))
-//,m_loop(true)
-//,m_poll(m_loop, m_tun_tap_dev_fd)
-//,m_signal(m_loop)
+#ifdef __USING_LIBUV__
+,m_loop(true)
+,m_poll(m_loop, m_tun_tap_dev_fd)
+,m_signal(m_loop)
+#endif
 ,m_config(config_)
 {
     init_mesh_cpes();
@@ -69,10 +71,11 @@ Server::Server(int id, char* devName, int flag, mzConfig& config_)
     init_tap_tun_dev(); 
     add_route_for_nodes();	
 
-/*    
+#ifdef __USING_LIBUV__    
     int eventFlag = UV_READABLE;
     m_poll.start(eventFlag, std::bind(&Server::on_read_tun_tap, this, placeholders::_1,  placeholders::_2));
-*/
+#endif
+
     cout << "tun fd:" << m_tun_tap_dev_fd << endl;   
     cout << "init server finish....... for id:" << m_config.userID << " ip:" << m_config.userIP << endl;
 }
@@ -108,7 +111,7 @@ void Server::exec_up_cmd()
 
 void Server::run()
 {
-#if 1
+#ifndef __USING_LIBUV__	
     int selectmax = m_tun_tap_dev_fd + 1;
     fd_set readfds;
     char buffer[PACK_MTU];

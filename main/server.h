@@ -10,7 +10,7 @@
 
 #include "config.h"
 
-
+#define __USING_LIBUV__ 0
 
 enum MESSAGETYPE
 {
@@ -91,9 +91,11 @@ private:
         std::string m_node_id;
 
 private:
-	//uvpp::loop   m_loop;
-        //uvpp::Poll   m_poll; //read dev tun fd callback
-        //uvpp::Signal m_signal;
+#ifdef __USING_LIBUV__
+	uvpp::loop   m_loop;
+        uvpp::Poll   m_poll; //read dev tun fd callback
+        uvpp::Signal m_signal;
+#endif
 	cpeNode      m_node;
         mzConfig&    m_config;
 
